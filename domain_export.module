@@ -76,16 +76,3 @@ function domain_export_domainlinks($domain) {
   }
   return FALSE;
 }
-
-/*function domain_export_features_api() {
-  return array(
-    'domain' => array(
-      'default_hook' => 'domain_defaults',
-      'default_file' => FEATURES_DEFAULTS_INCLUDED,
-      'features_source' => TRUE,
-      'file' => drupal_get_path('module', 'domain_export') .'/domain_export.features.inc',
-    ),
-  )
-
-}*/
-

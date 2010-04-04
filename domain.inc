@@ -60,22 +60,48 @@ function domain_export_domain_load($name) {
 /**
 * Load a single myobj.
 */
-function domain_export_domain_save(&$myobj) {
+function domain_export_domain_save(&$domain) {
   
-  $values = (array) $myobj; 
+  $values = (array) $domain; 
   
-  $myobj->domain_id = db_result(
-    db_query("SELECT domain_id from {domain} where machine_name = '%s' and domain_id <> 0 ",$myobj->machine_name)
+  $domain->domain_id = db_result(
+    db_query("SELECT domain_id from {domain} where machine_name = '%s' and domain_id <> 0 ",$domain->machine_name)
   );
-  $update = (isset($myobj->domain_id) && is_numeric($myobj->domain_id)) ? array('domain_id') : array();
+  $update = (isset($domain->domain_id) && is_numeric($domain->domain_id)) ? array('domain_id') : array();
   if (!empty($update)) {
     $action = 'update' ;  
   } else {
     $action = 'create' ;
   }
 
-  drupal_write_record('domain', $myobj, $update);
-
+  drupal_write_record('domain', $domain, $update);
+ /*
+  * Handle domain alaises 
+  */
+ if (module_exists('domain_alias') && !empty($domain->aliases)) {
+    //cleanup aliases
+    foreach($domain->aliases as $alias) {
+      $alias['domain_id'] = $domain->domain_id;
+      $alias['alias_id'] = db_result(db_query("SELECT alias_id from {domain_alias} where pattern = '%s'", $alias['pattern']));
+      $update = (isset($alias['alias_id']) && is_numeric($alias['alias_id'])) ? array('alias_id') : array();
+      drupal_write_record('domain_alias', $alias, $update);
+    }
+  }
+  
+  /*
+   * Handle domain settings
+   */
+   
+  if (module_exists('domain_conf') && !empty($domain->settings)) {
+    $settings['domain_id'] = $domain->domain_id;
+    $settings['settings'] = serialize($domain->settings);
+    if (db_result(db_query("SELECT domain_id from {domain_conf} where domain_id = %d",$domain->domain_id))) {
+      $update = array('domain_id');
+    } else {
+      $update = array();
+    }
+    drupal_write_record('domain_conf', $settings, $update);    
+  }
   // Let other modules act.
   $domain = domain_lookup(NULL, $values['subdomain']);
   $form_state['values'] = $values;
@@ -95,7 +121,6 @@ function domain_export_revert_domain(&$form_state, $domain) {
      '', 
      t('Revert'), 
      t('Cancel'));
-
 }
 /**
   * Revert a domain 
@@ -124,6 +149,21 @@ function domain_export_export_domain($domain) {
 */
 function domain_export_domain_export($domain, $indent = '') {
   ctools_include('export');
-  $output = ctools_export_object('domain', $domain, $indent);
+  $additions2 = array();
+  if (module_exists('domain_alias') && !empty($domain->aliases)) {
+    //cleanup aliases
+    foreach($domain->aliases as $alias) {
+      $aliases[$alias['pattern']] = array(
+        'pattern'=> $alias['pattern'], 
+        'redirect' => $alias['redirect']
+      );
+    }
+    $additions2['aliases'] = $aliases;  
+  }
+  if (module_exists('domain_conf')) {
+    $settings = domain_unserialize(db_result(db_query("SELECT settings FROM {domain_conf} WHERE domain_id = %d", $domain->domain_id)));
+    if ($settings) $additions2['settings'] = $settings; 
+  }
+  $output = ctools_export_object('domain', $domain, $indent,  NULL, array(), $additions2) ;
   return $output;
 }
