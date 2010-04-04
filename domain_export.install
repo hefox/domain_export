@@ -1,0 +1,11 @@
+<?php
+
+function domain_export_install() {
+  // add the name field
+    $ret = array() ;
+   db_add_field($ret, 'domain', 'machine_name',  array(
+    'type' => 'varchar',
+    'length' => '255',
+    'description' => 'Unique ID for this object. Used to identify it programmatically.',
+  ));
+}
