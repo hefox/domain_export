@@ -22,6 +22,8 @@ function domain_export_schema_alter(&$schema) {
   $schema['domain']['export'] = array(
     'key' => 'machine_name',
     'status' => 'valid',
+    'list callback' => 'domain_export_domain_list',
+    'export callback' => 'domain_export_domain_export',
     'api' => array(
       'owner' => 'domain',
       'api' => 'domain',

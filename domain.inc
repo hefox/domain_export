@@ -132,6 +132,15 @@ function domain_export_revert_domain_submit($form, &$form_state) {
   return;
 }
 
+function domain_export_domain_list() {
+  $domains = array();
+  $result = db_query("SELECT domain_id from {domain} where machine_name IS NOT NULL and domain_id <> 0"); 
+  while ($row = db_fetch_object($result)) {
+    $domain = (object) domain_lookup($row->domain_id);
+    if ($domain->machine_name) $domains[$domain->machine_name] = $domain ;
+  }
+  return $domains;
+}
 /**
 * Export a myobj and display it in a form.
 */
