@@ -75,33 +75,8 @@ function domain_export_domain_save(&$domain) {
   }
 
   drupal_write_record('domain', $domain, $update);
- /*
-  * Handle domain alaises 
-  */
- if (module_exists('domain_alias') && !empty($domain->aliases)) {
-    //cleanup aliases
-    foreach($domain->aliases as $alias) {
-      $alias['domain_id'] = $domain->domain_id;
-      $alias['alias_id'] = db_result(db_query("SELECT alias_id from {domain_alias} where pattern = '%s'", $alias['pattern']));
-      $update = (isset($alias['alias_id']) && is_numeric($alias['alias_id'])) ? array('alias_id') : array();
-      drupal_write_record('domain_alias', $alias, $update);
-    }
-  }
-  
-  /*
-   * Handle domain settings
-   */
-   
-  if (module_exists('domain_conf') && !empty($domain->settings)) {
-    $settings['domain_id'] = $domain->domain_id;
-    $settings['settings'] = serialize($domain->settings);
-    if (db_result(db_query("SELECT domain_id from {domain_conf} where domain_id = %d",$domain->domain_id))) {
-      $update = array('domain_id');
-    } else {
-      $update = array();
-    }
-    drupal_write_record('domain_conf', $settings, $update);    
-  }
+  module_invoke_all('domain_export_save', $domain);
+
   // Let other modules act.
   $domain = domain_lookup(NULL, $values['subdomain']);
   $form_state['values'] = $values;
@@ -109,10 +84,10 @@ function domain_export_domain_save(&$domain) {
   $myobj = (object) $form_state['values']; 
 }
 
+
 /*
  * Revert a domain to default verison
  */
-
 function domain_export_revert_domain(&$form_state, $domain) {
   $form['machine_name'] = array('#type' => 'hidden', '#value' => $domain->machine_name);
   return confirm_form($form, 
@@ -131,6 +106,7 @@ function domain_export_revert_domain_submit($form, &$form_state) {
   $form_state['redirect'] = 'admin/build/domain';
   return;
 }
+
 
 function domain_export_domain_list() {
   $domains = array();
@@ -158,27 +134,8 @@ function domain_export_export_domain($domain) {
 */
 function domain_export_domain_export($domain, $indent = '') {
   ctools_include('export');
-  $additions2 = array();
-  if (module_exists('domain_alias')) {
-    if (empty($domain->aliases)) {
-      $domain->aliases = domain_alias_list($domain->domain_id);
-    }
-    
-    //cleanup aliases
-    if (!empty($domain->aliases)) {
-      foreach($domain->aliases as $alias) {
-        $aliases[$alias['pattern']] = array(
-          'pattern'=> $alias['pattern'], 
-          'redirect' => $alias['redirect']
-        );
-      }
-    }
-    $additions2['aliases'] = $aliases;  
-  }
-  if (module_exists('domain_conf')) {
-    $settings = domain_unserialize(db_result(db_query("SELECT settings FROM {domain_conf} WHERE domain_id = %d", $domain->domain_id)));
-    if ($settings) $additions2['settings'] = $settings; 
-  }
+  $additions2 = module_invoke_all('domain_export_additions', $domain);
   $output = ctools_export_object('domain', $domain, $indent,  NULL, array(), $additions2) ;
   return $output;
 }
+

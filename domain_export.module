@@ -1,7 +1,7 @@
 <?php
 
 include_once dirname(__FILE__) . '/domain.inc';
-
+include_once dirname(__FILE__) . '/hooks.inc';
 
 /**
  * Implementation of hook_schema_alter().
@@ -30,7 +30,6 @@ function domain_export_schema_alter(&$schema) {
       'minimum_version' => 1,
       'current_version' => 1,
     ),
-
   );
   //$schema['variable']['fields']['value']['serialize'] = TRUE;
 }
