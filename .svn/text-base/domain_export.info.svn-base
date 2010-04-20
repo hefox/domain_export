@@ -1,4 +1,0 @@
-name = Domain Export
-description = Adds the ability to export domain settings. 
-core = 6.x
-dependencies[]  = domain
